@@ -55,7 +55,7 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
         for sp, _ in c.hierarchy.speaker_properties:
             if sp == 'name':
                 continue
-        q = q.columns(getattr(c.phone.speaker, sp).column_name(sp))
+            q = q.columns(getattr(c.phone.speaker, sp).column_name(sp))
 
         print("Writing CSV")
         qr.to_csv(csv_path)
