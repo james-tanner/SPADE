@@ -23,42 +23,40 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
         print("Beginning duration export")
         beg = time.time()
 
-        obstruents = ['p', 'P', 't', 'T', 'k', 'K', 'b', 'B', 'd', 'D', 'g', 'G']
+        consonants = ['p', 'P', 't', 'T', 'k', 'K', 'b', 'B', 'd', 'D', 'g', 'G',
+                      'F', 'f', 'V', 'v', 'N', 'n', 'm', 'M', 'NG', 'TH', 'DH',
+                      'l', 'L', 'ZH']
         q = c.query_graph(c.phone).filter(c.phone.label.in_(vowels))
         q = q.filter(c.phone.following.end == c.phone.word.utterance.end)
-        q = q.filter(c.phone.following.label.in_(obstruents))
+        q = q.filter(c.phone.following.label.in_(consonants))
         q = q.filter(c.phone.word.num_syllables == 1)
-        #q = q.filter(c.phone.syllable.stress == 1)
         if speakers:
             q = q.filter(c.phone.speaker.name.in_(speakers))
 
         print("Applied filters")
-        qr = q.columns(c.phone.label.column_name('phone_label'),
-                       c.phone.begin.column_name('phone_begin'),
-                       c.phone.end.column_name('phone_end'),
-                       c.phone.duration.column_name('phone_duration'),
-                       c.phone.previous.label.column_name('previous_phone'),
-                       c.phone.following.label.column_name('following_phone'),
-                       c.phone.word.label.column_name('word_label'),
-                       c.phone.word.begin.column_name('word_begin'),
-                       c.phone.word.num_syllables.column_name('word_num_syllables'),
-                       c.phone.word.stresspattern.column_name('word_stresspattern'),
-                       c.phone.syllable.label.column_name('syllable_label'),
-                       c.phone.syllable.duration.column_name('syllable_duration'),
-                       c.phone.syllable.stress.column_name('syllable_stress'),
-                       c.phone.utterance.speech_rate.column_name('speech_rate'),
-                       c.phone.speaker.name.column_name('speaker_name'),
-                       #c.phone.speaker.dialect.column_name('speaker_dialect'),
-                       #c.phone.speaker.dialect_state.column_name('speaker_dialect_state'),
-                       #c.phone.speaker.birthplace.column_name('speaker_dialect'),
-                       c.phone.utterance.label.column_name('utterance'))
+        q = q.columns(c.phone.label.column_name('phone_label'),
+                      c.phone.begin.column_name('phone_begin'),
+                      c.phone.end.column_name('phone_end'),
+                      c.phone.duration.column_name('phone_duration'),
+                      c.phone.previous.label.column_name('previous_phone'),
+                      c.phone.following.label.column_name('following_phone'),
+                      c.phone.word.label.column_name('word_label'),
+                      c.phone.word.begin.column_name('word_begin'),
+                      c.phone.word.num_syllables.column_name('word_num_syllables'),
+                      c.phone.word.stresspattern.column_name('word_stresspattern'),
+                      c.phone.syllable.label.column_name('syllable_label'),
+                      c.phone.syllable.duration.column_name('syllable_duration'),
+                      c.phone.syllable.stress.column_name('syllable_stress'),
+                      c.phone.utterance.speech_rate.column_name('speech_rate'),
+                      c.phone.speaker.name.column_name('speaker_name'),
+                      c.phone.utterance.label.column_name('utterance'))
         for sp, _ in c.hierarchy.speaker_properties:
             if sp == 'name':
                 continue
             q = q.columns(getattr(c.phone.speaker, sp).column_name(sp))
 
         print("Writing CSV")
-        qr.to_csv(csv_path)
+        q.to_csv(csv_path)
         end = time.time()
         time_taken = time.time() - beg
         print('Query took: {}'.format(end - beg))
