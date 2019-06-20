@@ -26,7 +26,7 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
         consonants = ['p', 'P', 't', 'T', 'k', 'K', 'b', 'B', 'd', 'D', 'g', 'G',
                       'F', 'f', 'V', 'v', 'N', 'n', 'm', 'M', 'NG', 'TH', 'DH',
                       'l', 'L', 'ZH', 'x', 'X', 'r', 'R', 's', 'S', 'sh', 'SH',
-                      'z','Z', 'zh', 'ZH']
+                      'z','Z', 'zh', 'ZH', 'J', 'C', 'tS', 'dZ']
         q = c.query_graph(c.phone).filter(c.phone.label.in_(vowels))
         q = q.filter(c.phone.following.end == c.phone.syllable.end)
         q = q.filter(c.phone.following.end == c.phone.word.utterance.end)
@@ -42,11 +42,13 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
                       c.phone.duration.column_name('phone_duration'),
                       c.phone.previous.label.column_name('previous_phone'),
                       c.phone.following.label.column_name('following_phone'),
+                      c.phone.following.duration.column_name('following_duration'),
                       c.phone.word.unisynprimstressedvowel1.column_name('word_unisyn'),
                       c.phone.word.label.column_name('word_label'),
                       c.phone.word.begin.column_name('word_begin'),
                       c.phone.syllable.label.column_name('syllable_label'),
                       c.phone.syllable.duration.column_name('syllable_duration'),
+                      c.phone.word.stresspattern.column_name('word_stresspattern'),
                       c.phone.syllable.stress.column_name('syllable_stress'),
                       c.phone.utterance.speech_rate.column_name('speech_rate'),
                       c.phone.utterance.id.column_name('utterance_label'),
