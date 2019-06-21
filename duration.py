@@ -20,6 +20,10 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
     csv_path = os.path.join(base_dir, corpus_name, '{}_duration.csv'.format(corpus_name))
     with CorpusContext(config) as c:
 
+        print("Getting baseline duration")
+        if not c.hierarchy.has_token_property('word', 'baseline'):
+            c.encode_baseline('word', 'duration')
+
         print("Beginning duration export")
         beg = time.time()
 
@@ -50,6 +54,7 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
                       c.phone.syllable.duration.column_name('syllable_duration'),
                       c.phone.word.stresspattern.column_name('word_stresspattern'),
                       c.phone.syllable.stress.column_name('syllable_stress'),
+                      c.phone.word.baseline.column_name('syllable_baseline'),
                       c.phone.utterance.speech_rate.column_name('speech_rate'),
                       c.phone.utterance.id.column_name('utterance_label'),
                       c.phone.speaker.name.column_name('speaker_name'),
