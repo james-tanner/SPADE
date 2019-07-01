@@ -16,13 +16,10 @@ from polyglotdb import CorpusContext
 from polyglotdb.utils import ensure_local_database_running
 from polyglotdb.config import CorpusConfig
 
-def duration_export(config, corpus_name, dialect_code, speakers, vowels):
+def duration_export(config, corpus_name, dialect_code, speakers, vowels, baseline = False):
     csv_path = os.path.join(base_dir, corpus_name, '{}_duration.csv'.format(corpus_name))
-    with CorpusContext(config) as c:
 
-        print("Getting baseline duration")
-        if not c.hierarchy.has_token_property('word', 'baseline'):
-            c.encode_baseline('word', 'duration')
+    with CorpusContext(config) as c:
 
         print("Beginning duration export")
         beg = time.time()
@@ -30,12 +27,13 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
         consonants = ['p', 'P', 't', 'T', 'k', 'K', 'b', 'B', 'd', 'D', 'g', 'G',
                       'F', 'f', 'V', 'v', 'N', 'n', 'm', 'M', 'NG', 'TH', 'DH',
                       'l', 'L', 'ZH', 'x', 'X', 'r', 'R', 's', 'S', 'sh', 'SH',
-                      'z','Z', 'zh', 'ZH', 'J', 'C', 'tS', 'dZ']
+                      'z','Z', 'zh', 'ZH', 'J', 'C', 'tS', 'dZ', 'tq']
         q = c.query_graph(c.phone).filter(c.phone.label.in_(vowels))
         q = q.filter(c.phone.following.end == c.phone.syllable.end)
         q = q.filter(c.phone.following.end == c.phone.word.utterance.end)
         q = q.filter(c.phone.following.label.in_(consonants))
-        q = q.filter(c.phone.word.num_syllables == 1)
+        q = q.filter(c.phone.word.stresspattern == "1")
+        q = q.filter(c.phone.syllable.stress == "1")
         if speakers:
             q = q.filter(c.phone.speaker.name.in_(speakers))
 
@@ -50,11 +48,12 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
                       c.phone.word.unisynprimstressedvowel1.column_name('word_unisyn'),
                       c.phone.word.label.column_name('word_label'),
                       c.phone.word.begin.column_name('word_begin'),
+                      c.phone.word.end.column_name('word_end'),
+                      c.phone.word.duration.column_name('word_duration'),
                       c.phone.syllable.label.column_name('syllable_label'),
                       c.phone.syllable.duration.column_name('syllable_duration'),
                       c.phone.word.stresspattern.column_name('word_stresspattern'),
                       c.phone.syllable.stress.column_name('syllable_stress'),
-                      c.phone.word.baseline.column_name('syllable_baseline'),
                       c.phone.utterance.speech_rate.column_name('speech_rate'),
                       c.phone.utterance.id.column_name('utterance_label'),
                       c.phone.speaker.name.column_name('speaker_name'),
@@ -64,6 +63,21 @@ def duration_export(config, corpus_name, dialect_code, speakers, vowels):
             if sp == 'name':
                 continue
             q = q.columns(getattr(c.phone.speaker, sp).column_name(sp))
+
+        if c.hierarchy.has_token_property('word', 'surface_transcription'):
+            print('getting underlying and surface transcriptions')
+            q = q.columns(
+                    c.phone.word.transcription.column_name('word_underlying_transcription'),
+                    c.phone.word.surface_transcription.column_name('word_surface_transcription'))
+
+        # get baseline duration:
+        # for most corpora this should be done over words
+        # as buckeye has many-to-one correspondence between transcriptions and words
+        # buckeye should have duration calculated over its underlying transcription
+        if baseline:
+            if not c.hierarchy.has_type_property('word', 'baseline'):
+                print('getting baseline from word')
+                c.encode_baseline('word', 'duration')
 
         print("Writing CSV")
         q.to_csv(csv_path)
@@ -77,10 +91,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('corpus_name', help='Name of the corpus')
     parser.add_argument('-r', '--reset', help="Reset the corpus", action='store_true')
+    parser.add_argument('-b', '--baseline', help='Calculate baseline duration', action='store_true')
 
     args = parser.parse_args()
     corpus_name = args.corpus_name
     reset = args.reset
+    baseline = args.baseline
     directories = [x for x in os.listdir(base_dir) if os.path.isdir(x) and x != 'Common']
 
     if args.corpus_name not in directories:
@@ -103,5 +119,5 @@ if __name__ == '__main__':
 
         common.basic_enrichment(config, corpus_conf['vowel_inventory'] + corpus_conf['extra_syllabic_segments'], corpus_conf['pauses'])
 
-        duration_export(config, corpus_name, corpus_conf['dialect_code'], corpus_conf['speakers'], corpus_conf['vowel_inventory'])
+        duration_export(config, corpus_name, corpus_conf['dialect_code'], corpus_conf['speakers'], corpus_conf['vowel_inventory'], baseline = baseline)
         print('Finishing up!')
